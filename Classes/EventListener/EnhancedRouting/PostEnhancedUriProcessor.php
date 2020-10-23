@@ -35,7 +35,8 @@ class PostEnhancedUriProcessor
         /* @var RoutingService $routingService */
         $routingService = GeneralUtility::makeInstance(
             RoutingService::class,
-            $configuration['solr']
+            $configuration['solr'],
+            (string)$configuration['extensionKey']
         );
         if (!$routingService->shouldConcatQueryParameters()) {
             return;

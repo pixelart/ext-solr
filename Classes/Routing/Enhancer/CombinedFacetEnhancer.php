@@ -308,7 +308,8 @@ class CombinedFacetEnhancer extends AbstractEnhancer implements RoutingEnhancerI
     {
         return GeneralUtility::makeInstance(
             RoutingService::class,
-            $this->configuration['solr']
+            $this->configuration['solr'],
+            (string)$this->configuration['extensionKey']
         );
     }
 }

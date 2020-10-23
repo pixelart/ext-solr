@@ -215,7 +215,10 @@ class RoutingServiceTest extends UnitTest
     protected function getRoutingService(string $fixtureName = 'siteConfiguration.yaml'): RoutingService
     {
         $configuration = Yaml::parse($this->getFixtureContentByName($fixtureName));
-        $routingService = new RoutingService($configuration['routeEnhancers']['example']['solr']);
+        $routingService = new RoutingService(
+            $configuration['routeEnhancers']['example']['solr'],
+            (string)$configuration['routeEnhancers']['example']['extensionKey']
+        );
         $routingService->setLogger(new NullLogger());
         return $routingService;
     }

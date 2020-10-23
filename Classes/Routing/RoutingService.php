@@ -36,11 +36,23 @@ class RoutingService implements LoggerAwareInterface
     use LoggerAwareTrait;
 
     /**
+     * Default plugin namespace
+     */
+    const PLUGIN_NAMESPACE = 'tx_solr';
+
+    /**
      * Settings from routing configuration
      *
      * @var array
      */
     protected $settings = [];
+
+    /**
+     * Plugin/extension namespace
+     *
+     * @var string
+     */
+    protected $pluginNamespace = 'tx_solr';
 
     /**
      * List of TYPO3 core parameters, that we should ignore
@@ -52,11 +64,17 @@ class RoutingService implements LoggerAwareInterface
 
     /**
      * RoutingService constructor.
+     *
      * @param array $settings
+     * @param string $pluginNamespace
      */
-    public function __construct(array $settings = [])
+    public function __construct(array $settings = [], string $pluginNamespace = self::PLUGIN_NAMESPACE)
     {
         $this->settings = $settings;
+        $this->pluginNamespace = $pluginNamespace;
+        if (empty($this->pluginNamespace)) {
+            $this->pluginNamespace = self::PLUGIN_NAMESPACE;
+        }
     }
 
     /**
@@ -92,10 +110,7 @@ class RoutingService implements LoggerAwareInterface
      */
     public function getPluginNamespace(): string
     {
-        if (isset($this->settings['pluginNamespace']) && !empty(trim($this->settings['pluginNamespace']))) {
-            return (string)$this->settings['pluginNamespace'];
-        }
-        return 'tx_solr';
+        return $this->pluginNamespace;
     }
 
     /**
