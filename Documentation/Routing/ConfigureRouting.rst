@@ -14,7 +14,7 @@ Use enhancer `CombinedFacetEnhancer` as type of your route, and limit it to page
 
 The extension key have to be set to `tx_solr`.
 
-Solr specific configuration will placed inside of key *solr*.
+Solr specific configuration will placed inside of key `solr`.
 
 The following example shows a the basement of the enhancer configuration.
 

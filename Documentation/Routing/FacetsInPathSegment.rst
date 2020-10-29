@@ -76,11 +76,11 @@ Handling of multiple values
 
 As the customer can combine as many values of a facet to filter the result, the path segment can contain multiple value.
 
-The route enhancer wll collect all values of the configures facet and combine them to a single string.
+The route enhancer will collect all values of the configured facet and combine them to a single string.
 
 The values will sort alphanumeric and concat with a colon.
 
-You can change the value separator by configure a multi value separator:
+You can change the value separator by configuring a multi value separator:
 
 .. code-block:: yaml
 
@@ -100,7 +100,7 @@ Additional you can replace specific characters inside of each value using a map 
           ' ': '-'
 
 .. important::
-  If you replace characters take care that the target character not a character that can be a part of the facet value.
+  If you replace characters, please take care that the target character is not a character, which could be a part of the facet value.
 
 Now lets have a look at the effect.
 

@@ -11,7 +11,7 @@ There are two options that you can apply on the query string:
 1. Concat multiple values of facet into a single string
 2. Mask the filter inside of the query
 
-All query related configurations will be places below node `query` below node `solr`:
+All query related configurations will be placed below node `query` below node `solr`:
 
 .. code-block:: yaml
 
@@ -23,7 +23,7 @@ All query related configurations will be places below node `query` below node `s
 Concat multiple values into a string
 ------------------------------------
 
-In order to active concat of multiple value add entry `concat` and set the value to `true`.
+To activate the concatenation of multiple values add the `concat` entry and set the value to `true`.
 
 By default the values will concat with a colon. If you need a different separator, add the entry `valueSeparator` and set a value that fits your need.
 
@@ -61,7 +61,7 @@ Add the entry `mask` with the value `true` to the query configuration.
 
 Add the node `map` and configure the mapping.
 
-The value of the map defines the facet type, the value the parameter that will be used inside of the URL.
+The value of the map defines the facet key, the value the parameter that will be used inside of the URL.
 
 .. code-block:: yaml
 
@@ -83,16 +83,16 @@ By enable concat of multiple values, it would change into
 	taste=matcha,sour,sweet
 
 .. tip::
-  The facet and the parameter can be equal, you don't have to choose different names.
+  The facet and the "target" can be equal, you may use same names.
 
 .. note::
-  By enable the mask option, the concat option applied automatically!
+  By enabling the mask option, the concat option applied automatically!
 
 .. note::
   The mask only apply to facet you configure inside of the map.
 
 .. important::
-  Some facet names are excludes from mask until you configure a different parameter name. These are TYPO3 internal parameters.
+  Some facet names are excluded from mask until you configure a different parameter name. This are the internal/reserved parameters of TYPO3.
   * type
   * id
   * no_cache
@@ -102,7 +102,7 @@ By enable concat of multiple values, it would change into
 Full example
 ------------
 
-This example shows the all configuration done above
+This example shows all configurations together, which were done above in step by step:
 
 .. code-block:: yaml
 
