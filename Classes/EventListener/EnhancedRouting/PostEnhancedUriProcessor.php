@@ -50,7 +50,7 @@ class PostEnhancedUriProcessor
          */
         $queryParameters = $routingService->concatQueryParameter($queryParameters);
         $queryParameters = $routingService->maskQueryParameters($queryParameters);
-        $query = UriUtility::queryArrayToString($queryParameters);
+        $query = http_build_query($queryParameters);
         $uri = $uri->withQuery($query);
         $event->replaceUri($uri);
     }

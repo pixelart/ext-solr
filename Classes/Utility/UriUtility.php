@@ -35,14 +35,4 @@ class UriUtility
 
         return explode('&', $query);
     }
-    /**
-     * Converts a query array into a string.
-     *
-     * @param array $query
-     * @return string
-     */
-    public static function queryArrayToString(array $query): string
-    {
-        return implode('&', $query);
-    }
 }
