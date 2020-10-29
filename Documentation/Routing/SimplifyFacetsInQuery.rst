@@ -55,7 +55,7 @@ Mask filter inside of the URL allows you to make the URL more readable and to sh
 The configuration contains two parts:
 
 1. enable the mask
-2. map from facet to parameter
+2. map from the facet name to parameter (see :ref:`faceting.facets.[facetName] - single facet configuration <configuration.reference.solrsearch.facet.intro>`)
 
 Add the entry `mask` with the value `true` to the query configuration.
 
