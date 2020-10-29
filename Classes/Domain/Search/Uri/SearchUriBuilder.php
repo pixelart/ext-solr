@@ -24,7 +24,7 @@ use ApacheSolrForTypo3\Solr\Event\EnhancedRouting\PostProcessUriEvent as PostPro
 use ApacheSolrForTypo3\Solr\Event\Routing\PostProcessUriEvent;
 use ApacheSolrForTypo3\Solr\Routing\RoutingService;
 use ApacheSolrForTypo3\Solr\System\Url\UrlHelper;
-use TYPO3\CMS\Core\EventDispatcher\EventDispatcher;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
@@ -70,7 +70,7 @@ class SearchUriBuilder
     protected static $additionalArgumentsCache = [];
 
     /**
-     * @var EventDispatcher
+     * @var EventDispatcherInterface
      */
     protected $eventDispatcher;
 
@@ -96,9 +96,9 @@ class SearchUriBuilder
     }
 
     /**
-     * @param EventDispatcher $eventDispatcher
+     * @param EventDispatcherInterface $eventDispatcher
      */
-    public function injectEventDispatcher(EventDispatcher $eventDispatcher)
+    public function injectEventDispatcher(EventDispatcherInterface $eventDispatcher)
     {
         $this->eventDispatcher = $eventDispatcher;
     }
