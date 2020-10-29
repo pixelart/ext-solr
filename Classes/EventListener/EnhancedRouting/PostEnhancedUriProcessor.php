@@ -43,7 +43,12 @@ class PostEnhancedUriProcessor
         }
 
         $uri = $event->getUri();
-        $queryParameters = UriUtility::queryStringToArray($uri->getQuery());
+        parse_str($uri->getQuery(), $queryParameters);
+
+        if (empty($queryParameters) || !is_array($queryParameters)) {
+            $queryParameters = [];
+        }
+
         /*
          * The order here is important.
          * Method maskQueryParameters expects that the filter array does not contain multiple entries for the same facet.
