@@ -38,6 +38,7 @@ use ApacheSolrForTypo3\Solr\System\Solr\Parser\SynonymParser;
 use ApacheSolrForTypo3\Solr\System\Solr\Service\SolrAdminService;
 use ApacheSolrForTypo3\Solr\System\Solr\SolrConnection;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\EventDispatcher\EventDispatcher;
 use TYPO3\CMS\Core\TypoScript\TemplateService;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
@@ -143,12 +144,27 @@ class ConnectionManagerTest extends UnitTest
 
                 $readNode = Node::fromArray($readNode);
                 $writeNode = Node::fromArray($writeNode);
+                /* @var TypoScriptConfiguration $typoScriptConfigurationMock */
                 $typoScriptConfigurationMock = $self->getDumbMock(TypoScriptConfiguration::class);
+                /* @var SynonymParser $synonymsParserMock */
                 $synonymsParserMock = $self->getDumbMock(SynonymParser::class);
+                /* @var StopWordParser $stopWordParserMock */
                 $stopWordParserMock = $self->getDumbMock(StopWordParser::class);
+                /* @var SchemaParser $schemaParserMock */
                 $schemaParserMock = $self->getDumbMock(SchemaParser::class);
+                /* @var EventDispatcher $eventDispatcher */
+                $eventDispatcher = $self->getDumbMock(EventDispatcher::class);
 
-                return new SolrConnection($readNode, $writeNode, $typoScriptConfigurationMock, $synonymsParserMock, $stopWordParserMock, $schemaParserMock, $self->logManagerMock);
+                return new SolrConnection(
+                    $readNode,
+                    $writeNode,
+                    $typoScriptConfigurationMock,
+                    $synonymsParserMock,
+                    $stopWordParserMock,
+                    $schemaParserMock,
+                    $self->logManagerMock,
+                    $eventDispatcher
+                );
             })
         );
         $exceptionOccured = false;

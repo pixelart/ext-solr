@@ -28,7 +28,9 @@ use ApacheSolrForTypo3\Solr\Domain\Search\Query\ExtractingQuery;
 use ApacheSolrForTypo3\Solr\System\Solr\Service\SolrWriteService;
 use ApacheSolrForTypo3\Solr\Tests\Integration\IntegrationTest;
 use Solarium\Client;
+use Solarium\Core\Client\Adapter\Curl;
 use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
+use TYPO3\CMS\Core\EventDispatcher\EventDispatcher;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -51,10 +53,18 @@ class SolrWriteServiceTest extends IntegrationTest
     public function setUp()
     {
         parent::setUp();
-        $client = new Client(['adapter' => 'Solarium\Core\Client\Adapter\Guzzle']);
+        /* @var EventDispatcher $eventDispatcher */
+        $eventDispatcher = $this->getMockBuilder(EventDispatcher::class)
+            ->disableOriginalConstructor()
+            ->getMock(EventDispatcher::class);
+        $adapter = new Curl();
+        $client = new Client(
+            $adapter,
+            $eventDispatcher
+        );
         $client->clearEndpoints();
         $solrConnectionInfo = $this->getSolrConnectionInfo();
-        $client->createEndpoint(['host' => $solrConnectionInfo['host'], 'port' => $solrConnectionInfo['port'], 'path' => '/solr', 'core' => 'core_en', 'key' => 'admin'] , true);
+        $client->createEndpoint(['host' => $solrConnectionInfo['host'], 'port' => $solrConnectionInfo['port'], 'path' => '/', 'core' => 'core_en', 'key' => 'admin'] , true);
 
         $this->solrWriteService = GeneralUtility::makeInstance(SolrWriteService::class, $client);
     }
@@ -65,7 +75,7 @@ class SolrWriteServiceTest extends IntegrationTest
     public function canExtractByQuery()
     {
         $testFilePath = $this->getFixturePathByName('testpdf.pdf');
-            /** @var $extractQuery \ApacheSolrForTypo3\Solr\Domain\Search\Query\ExtractingQuery*/
+        /** @var $extractQuery \ApacheSolrForTypo3\Solr\Domain\Search\Query\ExtractingQuery*/
         $extractQuery = GeneralUtility::makeInstance(ExtractingQuery::class, $testFilePath);
         $extractQuery->setExtractOnly(true);
         $response = $this->solrWriteService->extractByQuery($extractQuery);

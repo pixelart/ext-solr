@@ -32,9 +32,20 @@ use ApacheSolrForTypo3\Solr\System\Solr\Parser\SynonymParser;
 use ApacheSolrForTypo3\Solr\System\Solr\Service\SolrAdminService;
 use ApacheSolrForTypo3\Solr\System\Solr\Service\SolrReadService;
 use ApacheSolrForTypo3\Solr\System\Solr\Service\SolrWriteService;
+use ApacheSolrForTypo3\Solr\System\Util\SiteUtility;
 use ApacheSolrForTypo3\Solr\Util;
+use GuzzleHttp\Client as GuzzleClient;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Client\ClientInterface;
 use Solarium\Client;
-use Solarium\Core\Client\Endpoint;
+use Solarium\Core\Client\Adapter\AdapterInterface;
+use Solarium\Core\Client\Adapter\Curl;
+use Solarium\Core\Client\Adapter\Psr18Adapter;
+use Solarium\Core\Client\Adapter\TimeoutAwareInterface;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Http\StreamFactory;
+use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -44,6 +55,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class SolrConnection
 {
+    /**
+     * @var EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+
     /**
      * @var SolrAdminService
      */
@@ -90,7 +106,22 @@ class SolrConnection
     protected $logger = null;
 
     /**
-     * @var array
+     * Adapter class used for the communication
+     *
+     * @var string
+     */
+    protected $adapterClass = Curl::class;
+
+    /**
+     * This property should be removed at the point Guzzle version 7 is supported by TYPO3
+     *
+     * @var bool|null
+     * @deprecated Will be removed with a future TYPO3 version
+     */
+    protected $psrCompatibilityCheckCache = null;
+
+    /**
+     * @var Client[]
      */
     protected $clients = [];
 
@@ -99,11 +130,12 @@ class SolrConnection
      *
      * @param Node $readNode,
      * @param Node $writeNode
-     * @param TypoScriptConfiguration $configuration
-     * @param SynonymParser $synonymParser
-     * @param StopWordParser $stopWordParser
-     * @param SchemaParser $schemaParser
-     * @param SolrLogManager $logManager
+     * @param ?TypoScriptConfiguration $configuration
+     * @param ?SynonymParser $synonymParser
+     * @param ?StopWordParser $stopWordParser
+     * @param ?SchemaParser $schemaParser
+     * @param ?SolrLogManager $logManager
+     * @param ?EventDispatcherInterface $eventDispatcher
      */
     public function __construct(
         Node $readNode,
@@ -112,7 +144,8 @@ class SolrConnection
         SynonymParser $synonymParser = null,
         StopWordParser $stopWordParser = null,
         SchemaParser $schemaParser = null,
-        SolrLogManager $logManager = null
+        SolrLogManager $logManager = null,
+        EventDispatcherInterface $eventDispatcher = null
     ) {
         $this->nodes['read'] = $readNode;
         $this->nodes['write'] = $writeNode;
@@ -122,6 +155,7 @@ class SolrConnection
         $this->stopWordParser = $stopWordParser;
         $this->schemaParser = $schemaParser;
         $this->logger = $logManager;
+        $this->eventDispatcher = $eventDispatcher ?? GeneralUtility::getContainer()->get(EventDispatcherInterface::class);
     }
 
     /**
@@ -235,19 +269,26 @@ class SolrConnection
      * @param string $endpointKey
      * @return Client
      */
-    protected function getClient($endpointKey): Client
+    protected function getClient(string $endpointKey): Client
     {
-        if($this->clients[$endpointKey]) {
+        if ($this->clients[$endpointKey]) {
             return $this->clients[$endpointKey];
         }
+        // TODO: Should it be a clone of the endpoint? In row 277 the key of the endpoint is set.
+        $endPoint = $this->getNode($endpointKey);
+        print_r($endPoint);
+        $newEndpointOptions = $endPoint->getSolariumClientOptions();
+        $adapter = $this->getClientAdapter($newEndpointOptions, $endpointKey);
 
-        $client = new Client(['adapter' => 'Solarium\Core\Client\Adapter\Guzzle']);
+        $client = new Client(
+            $adapter,
+            $this->eventDispatcher
+        );
         $client->getPlugin('postbigrequest');
         $client->clearEndpoints();
 
-        $newEndpointOptions = $this->getNode($endpointKey)->getSolariumClientOptions();
-        $newEndpointOptions['key'] = $endpointKey;
-        $client->createEndpoint($newEndpointOptions, true);
+        $endPoint->setKey($endpointKey);
+        $client->addEndpoint($endPoint);
 
         $this->clients[$endpointKey] = $client;
         return $client;
@@ -260,5 +301,106 @@ class SolrConnection
     public function setClient(Client $client, $endpointKey = 'read')
     {
         $this->clients[$endpointKey] = $client;
+    }
+
+    /**
+     * Setup the adapter configuration for the client.
+     * Consider Guzzle settings from global configuration
+     *
+     * @see \TYPO3\CMS\Core\Http\Client\GuzzleClientFactory::getClient
+     *
+     * @param array $configuration
+     * @param string $endpointKey
+     * @return AdapterInterface
+     */
+    protected function getClientAdapter(array $configuration, string $endpointKey = 'read'): AdapterInterface
+    {
+        $options = $configuration;
+        // TODO: Replace with unified configuration
+        if (false && !empty($GLOBALS['TYPO3_CONF_VARS']['HTTP'])) {
+            $httpOptions = $GLOBALS['TYPO3_CONF_VARS']['HTTP'];
+            $httpOptions['verify'] = filter_var(
+                    $httpOptions['verify'],
+                    FILTER_VALIDATE_BOOLEAN,
+                    FILTER_NULL_ON_FAILURE) ?? $httpOptions['verify'];
+            unset($httpOptions['timeout']);
+            $options = array_merge_recursive($options, $httpOptions);
+        }
+
+        $adapterClass = $this->getVerifiedAdapterClassName($this->adapterClass, $endpointKey);
+
+        /*
+         * Psr18Adapter constructor requires more parameters than the other adapter.
+         */
+        if ($adapterClass === Psr18Adapter::class) {
+            /* @var GuzzleClient $client */
+            $client = GeneralUtility::makeInstance(GuzzleClient::class, $options);
+
+            /* @var RequestFactory $requestFactory */
+            $requestFactory = GeneralUtility::makeInstance(RequestFactory::class, $options);
+
+            /* @var StreamFactory $streamFactory */
+            $streamFactory = GeneralUtility::makeInstance(StreamFactory::class);
+
+            /* @var Psr18Adapter $adapter */
+            $adapter = new $adapterClass(
+                $client,
+                $requestFactory,
+                $streamFactory
+            );
+
+        } else {
+            /* @var AdapterInterface $adapter */
+            $adapter = new $adapterClass($options);
+        }
+
+        if ($adapter instanceof TimeoutAwareInterface) {
+            $adapter->setTimeout((int)$options['timeout']);
+        }
+
+        return $adapter;
+    }
+
+    /**
+     * Determine the correct adapter class
+     *
+     * @param string $adapterClass
+     * @param string $endpointKey
+     * @return string
+     */
+    protected function getVerifiedAdapterClassName(string $adapterClass, string $endpointKey = 'read'): string
+    {
+        if ($adapterClass === Psr18Adapter::class) {
+            if (!$this->isGuzzleIsPsr18Compatible()) {
+                $adapterClass = null;
+            }
+        }
+
+        if ($adapterClass !== null) {
+            $interfaces = class_implements($adapterClass);
+            if (in_array(AdapterInterface::class, $interfaces)) {
+                return $adapterClass;
+            }
+        }
+
+        return Curl::class;
+    }
+
+    /**
+     * Method to check if Guzzle is PSR-18 compatible.
+     * This method is deprecated and remove at the point TYPO3 uses Guzzle v7 which implements the interface.
+     *
+     * @return bool
+     * @deprecated Will be removed with a future TYPO3 version
+     * @api
+     */
+    protected function isGuzzleIsPsr18Compatible(): bool
+    {
+        if ($this->psrCompatibilityCheckCache === null) {
+            $interfaces = class_implements(GuzzleClient::class);
+            $this->psrCompatibilityCheckCache = in_array(ClientInterface::class, $interfaces);
+        }
+
+        return $this->psrCompatibilityCheckCache;
     }
 }

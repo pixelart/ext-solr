@@ -2,7 +2,7 @@
 namespace ApacheSolrForTypo3\Solr\System\Solr\Document;
 
 use RuntimeException;
-use Solarium\QueryType\Update\Query\Document\Document as SolariumDocument;
+use Solarium\QueryType\Update\Query\Document as SolariumDocument;
 
 class Document extends SolariumDocument {
 
