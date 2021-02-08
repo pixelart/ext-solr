@@ -276,7 +276,6 @@ class SolrConnection
         }
         // TODO: Should it be a clone of the endpoint? In row 277 the key of the endpoint is set.
         $endPoint = $this->getNode($endpointKey);
-        print_r($endPoint);
         $newEndpointOptions = $endPoint->getSolariumClientOptions();
         $adapter = $this->getClientAdapter($newEndpointOptions, $endpointKey);
 
